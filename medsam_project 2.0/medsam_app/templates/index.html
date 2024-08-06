@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MedSam Segmentation</title>
+    <style>
+        #original-image {
+            max-width: 100%;
+            display: block;
+            margin: 0 auto;
+        }
+        #segmented-mask {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <input type="file" id="upload" accept="image/*">
+    <img id="original-image" src="" alt="Original Image">
+    <canvas id="segmented-mask"></canvas>
+    <script>
+        let startX, startY, endX, endY, canvas, ctx;
+
+        document.getElementById('upload').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.getElementById('original-image');
+                img.src = e.target.result;
+                img.onload = function() {
+                    canvas = document.getElementById('segmented-mask');
+                    ctx = canvas.getContext('2d');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                };
+            };
+            reader.readAsDataURL(file);
+        });
+
+        document.getElementById('original-image').addEventListener('mousedown', function(event) {
+            startX = event.offsetX;
+            startY = event.offsetY;
+        });
+
+        document.getElementById('original-image').addEventListener('mouseup', function(event) {
+            endX = event.offsetX;
+            endY = event.offsetY;
+            sendCoords();
+        });
+
+        function sendCoords() {
+            const coords = [startX, startY, endX, endY].join(',');
+            const imageFile = document.getElementById('upload').files[0];
+            const formData = new FormData();
+            formData.append('image', imageFile);
+            formData.append('coords', coords);
+			
+			fetch(`/get-segmentation/1/`, {
+			  method: 'POST',
+			  body: formData,
+			})
+			
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    console.error(data.error);
+                } else {
+                    drawSegmentation(data.segmentation);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
+        function drawSegmentation(segmentation) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = 'rgba(0, 255, 0, 0.5)';
+            segmentation.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value) {
+                        ctx.fillRect(x, y, 1, 1);
+                    }
+                });
+            });
+        }
+    </script>
+</body>
+</html>

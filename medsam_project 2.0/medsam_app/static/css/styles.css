@@ -1,0 +1,29 @@
+body {
+    font-family: Arial, sans-serif;
+}
+
+h1, h2 {
+    text-align: center;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+input[type="text"], button {
+    margin: 5px;
+}
+
+#segmentationImage {
+    display: block;
+    margin: 0 auto;
+}
+
+#segmentationCanvas {
+    border: 1px solid #f50505;
+    display: block;
+    margin: 0 auto;
+}

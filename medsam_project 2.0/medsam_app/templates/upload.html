@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Upload Image</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+    <h1>Upload Images</h1>
+	
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <input type="file" name="image" multiple>
+        <button type="submit">Upload</button>
+    </form>
+
+    <h2>Or Search by Folder Name</h2>
+    <form method="get" id="searchForm">
+        <input type="text" name="folder_name" placeholder="Enter Folder Name" id="folderNameInput">
+        <button type="submit">Search</button>
+    </form>
+
+    <script>
+        document.getElementById('searchForm').addEventListener('submit', function(event) {
+            event.preventDefault(); // Prevent the form from submitting normally
+            const folderName = document.getElementById('folderNameInput').value;
+            if (folderName) {
+                this.action = `/segmentation/${folderName}/`;
+                this.submit();
+            } else {
+                alert("Please enter a valid Folder Name");
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Image Segmentation</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        #canvasContainer {
+            display: flex;
+            justify-content: space-between;
+        }
+        .canvasGroup {
+            position: relative;
+            margin: 0 10px;
+        }
+        canvas {
+            border: 1px solid black;
+        }
+        .segmentationResult {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            pointer-events: none;
+        }
+        .clipResults {
+            margin-top: 20px;
+        }
+        .highlight {
+            display: inline;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Segmentation Page</h1>
+    <p>Folder Name: {{ folder_name }}</p>
+    <div id="canvasContainer">
+        {% for image in images %}
+            <div class="canvasGroup">
+                <canvas id="segmentationCanvas{{ forloop.counter0 }}" class="segmentationCanvas" width="1024" height="1024" data-index="{{ forloop.counter0 }}"></canvas>
+                <canvas id="segmentationResult{{ forloop.counter0 }}" class="segmentationResult" width="1024" height="1024"></canvas>
+            </div>
+        {% endfor %}
+    </div>
+    <div id="clipResults" class="clipResults">{{ report_text }}</div>
+    <script>
+        const imagePaths = {{ images|safe }};
+		const originalReportText = "{{ report_text }}";
+        console.log('Image Paths:', imagePaths);
+
+        const canvasIds = [
+            {% for image in images %}
+                "segmentationCanvas{{ forloop.counter0 }}"{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ];
+
+        const resultCanvasIds = [
+            {% for image in images %}
+                "segmentationResult{{ forloop.counter0 }}"{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ];
+
+        const boundingBoxes = Array(imagePaths.length).fill().map(() => []);
+        const segmentationResults = Array(imagePaths.length).fill().map(() => []);
+        const usedColors = new Set();
+        const colors = ['rgba(255, 0, 0, 0.5)', 'rgba(0, 255, 0, 0.5)', 'rgba(0, 0, 255, 0.5)', 'rgba(255, 255, 0, 0.5)', 'rgba(255, 0, 255, 0.5)', 'rgba(0, 255, 255, 0.5)'];
+
+        function getUniqueColor() {
+            for (let color of colors) {
+                if (!usedColors.has(color)) {
+                    usedColors.add(color);
+                    return color;
+                }
+            }
+            return colors[0]; // Fallback if all colors are used
+        }
+
+        canvasIds.forEach((canvasId, index) => {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            const resultCanvas = document.getElementById(resultCanvasIds[index]);
+            const resultCtx = resultCanvas.getContext('2d');
+
+            const img = new Image();
+            img.src = imagePaths[index];
+            console.log(`Loading image ${index}: ${img.src}`);
+
+            img.onload = function () {
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            };
+
+            img.onerror = function () {
+                console.error(`Failed to load image ${index}: ${img.src}`);
+            };
+
+            let isDrawing = false;
+            let startX, startY, endX, endY;
+
+            canvas.addEventListener('mousedown', (e) => {
+                isDrawing = true;
+                [startX, startY] = [e.offsetX, e.offsetY];
+                ctx.setLineDash([5, 5]); // Dotted line
+                ctx.strokeStyle = 'red';
+                ctx.lineWidth = 2;
+            });
+
+            canvas.addEventListener('mousemove', (e) => {
+                if (!isDrawing) return;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                boundingBoxes[index].forEach(box => drawBoundingBox(ctx, box.startX, box.startY, box.endX, box.endY, box.color, box.lineDash));
+                [endX, endY] = [e.offsetX, e.offsetY];
+                drawBoundingBox(ctx, startX, startY, endX, endY, 'red', [5, 5]);
+            });
+
+            canvas.addEventListener('mouseup', (e) => {
+                isDrawing = false;
+                ctx.setLineDash([]); // Solid line
+                const color = getUniqueColor();
+                const bbox = { startX, startY, endX, endY, color: color, lineDash: [] };
+                boundingBoxes[index].push(bbox);
+                drawBoundingBox(ctx, startX, startY, endX, endY, color, []);
+
+                fetch(`/get-segmentation/{{ folder_name }}/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}',
+                    },
+                    body: JSON.stringify({ bbox: [startX, startY, endX, endY], imageIndex: index, color: color, image_path: imagePaths[index] }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.mask) {
+                        segmentationResults[index].push({ mask: data.mask, color: bbox.color });
+                        drawSegmentationResults(resultCtx, segmentationResults[index]);
+						displayClipResults(data.clip_results.highlighted_text, '{{ report_text }}');
+                    } else {
+                        alert('Segmentation failed: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred during segmentation.');
+                });
+            });
+        });
+
+        function drawBoundingBox(ctx, x1, y1, x2, y2, color, lineDash) {
+            ctx.setLineDash(lineDash);
+            ctx.strokeStyle = color;
+            ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+        }
+
+        function drawSegmentationResults(resultCtx, results) {
+            resultCtx.clearRect(0, 0, resultCtx.canvas.width, resultCtx.canvas.height);
+            results.forEach(result => {
+                const mask = result.mask;
+                resultCtx.fillStyle = result.color;
+                for (let i = 0; i < mask.length; i++) {
+                    for (let j = 0; j < mask[i].length; j++) {
+                        if (mask[i][j] === 1) {
+                            resultCtx.fillRect(j, i, 1, 1);
+                        }
+                    }
+                }
+            });
+        }
+
+        function blendColors(color1, color2) {
+			const color1RGBA = color1.match(/\d+/g).map(Number);
+			const color2RGBA = color2.match(/\d+/g).map(Number);
+			const blended = color1RGBA.map((c, i) => Math.floor((c + color2RGBA[i]) / 2));
+			return `rgba(${blended[0]}, ${blended[1]}, ${blended[2]}, ${(blended[3] / 255).toFixed(2)})`;
+		}
+
+		function displayClipResults(results, originalText) {
+			const container = document.getElementById('clipResults');
+			container.innerHTML = '';
+
+			// Split original text into sentences
+			const sentences = originalText.split('. ');
+			let highlightedText = '';
+			
+			sentences.forEach(sentence => {
+				let span = document.createElement('span');
+				let foundMatches = results.filter(result => result.sentence.trim().startsWith(sentence.trim()) && result.score > 0.02);
+				
+				if (foundMatches.length > 0) {
+					let finalColor = foundMatches[0].color;
+					for (let i = 1; i < foundMatches.length; i++) {
+						finalColor = blendColors(finalColor, foundMatches[i].color);
+					}
+					span.className = 'highlight';
+					span.style.backgroundColor = finalColor;
+					span.textContent = `${sentence}. `;
+				} else {
+					span.textContent = `${sentence}. `;
+				}
+				highlightedText += span.outerHTML;
+			});
+
+			container.innerHTML = highlightedText;
+		}
+
+
+    </script>
+</body>
+</html>
