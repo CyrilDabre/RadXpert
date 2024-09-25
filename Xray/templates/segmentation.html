@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Segmentation and Report Enhancement </title>
+	
+    <style>
+        /* Add necessary styling for containers */
+        #contentContainer {
+            display: flex;
+            justify-content: space-between;
+        }
+        #leftContainer {
+            width: 60%;
+            margin-right: 20px;
+        }
+        #reportContainer {
+            width: 40%;
+            background-color: #fff;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .canvas-container {
+            position: relative;
+            display: inline-block;
+        }
+        canvas {
+            border: 1px solid black;
+        }
+        #thumbnailContainer {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .thumbnail {
+            width: 100px;
+            height: 100px;
+            border: 1px solid black;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.3s;
+        }
+        .thumbnail.active {
+            opacity: 1;
+            border: 2px solid blue;
+        }
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="text-align: center;">Report Id: {{ folder_name }} </h1>
+    
+    <div id="contentContainer">
+        <!-- Left-side canvas for image, bounding box, and segmentation -->
+        <div id="leftContainer">
+            <div class="canvas-container">
+                <canvas id="mainCanvas" width="1024" height="1024"></canvas>
+            </div>
+            <!-- Thumbnails to switch between images -->
+            <div id="thumbnailContainer">
+				{% for image in images %}
+                    <img src="{{ image }}" class="thumbnail" data-index="{{ forloop.counter0 }}" />
+                {% endfor %}
+			</div>
+        </div>
+        
+        <!-- Right-side report containers for original and enhanced report -->
+        <div id="reportContainer">
+            <h2>Original Report</h2>
+            <div id="originalReportContainer">Loading original report...</div>
+            
+            <h2>Enhanced Report</h2>
+            <div id="enhancedReportContainer" contenteditable="true">>Click 'Enhance Report' to generate enhanced text</div>
+            
+            <!-- Button to trigger report enhancement -->
+            <button id="enhanceReportBtn">Enhance Report</button>
+        </div>
+    </div>
+    <script>
+let mainCanvas = document.getElementById('mainCanvas');
+let mainCtx = mainCanvas.getContext('2d');
+const imagePaths = {{ images|safe }};        
+let currentImageIndex = 0;  // Index of the currently displayed image
+let boundingBoxes = {};  // Store bounding boxes and other info per image index
+let segmentationPlots = {};  // Store segmentation results per image index
+let reportText = "{{ report_text }}"; // Replace with actual report text
+let enhancedText = '';
+
+// Colors for bounding boxes - unique per image index
+const boundingBoxColors = ['#FF5733', '#33FF57', '#3357FF', '#FF33A1', '#FFC300'];
+
+// Display the original report text by default
+document.getElementById('originalReportContainer').innerHTML = reportText;
+
+// Store each image's pre-loaded image object so it's only loaded once
+let loadedImages = {};
+
+// Load initial image and redraw bounding box/segmentation for the first image
+loadImageAndData(currentImageIndex);
+
+// Function to load image and relevant stored data without clearing the canvas during draw
+function loadImageAndData(imageIndex) {
+    if (loadedImages[imageIndex]) {
+        // If the image is already loaded, use the cached version
+        mainCtx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
+        mainCtx.drawImage(loadedImages[imageIndex], 0, 0, mainCanvas.width, mainCanvas.height);
+
+        // Draw the bounding box and segmentation plot if available
+        if (boundingBoxes[imageIndex]) {
+            drawBoundingBox(boundingBoxes[imageIndex].coords, boundingBoxes[imageIndex].color);
+        }
+        if (segmentationPlots[imageIndex]) {
+            drawSegmentationPlot(segmentationPlots[imageIndex], boundingBoxes[imageIndex].color );
+        }
+    } else {
+        let img = new Image();
+        img.onload = function () {
+            mainCtx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
+            mainCtx.drawImage(img, 0, 0, mainCanvas.width, mainCanvas.height);
+
+            // Cache the loaded image
+            loadedImages[imageIndex] = img;
+
+            // Draw the bounding box and segmentation plot if available
+            if (boundingBoxes[imageIndex]) {
+                drawBoundingBox(boundingBoxes[imageIndex].coords, boundingBoxes[imageIndex].color);
+            }
+            if (segmentationPlots[imageIndex]) {
+                drawSegmentationPlot(segmentationPlots[imageIndex], boundingBoxes[imageIndex].color);
+            }
+        };
+        img.src = imagePaths[imageIndex];
+    }
+}
+// Function to draw segmentation plot (mask and bounding box)
+// Function to handle the drawing of segmentation plot (mask)
+function drawSegmentationPlot(segmentationData, color) {
+    // Check if a mask is present (assuming mask is pixel-wise)
+    if (segmentationData.mask && Array.isArray(segmentationData.mask)) {
+        console.log('Segmentation mask:', segmentationData.mask);
+
+        const mask = segmentationData.mask;
+
+        // Assuming mask is a 2D array where 1 indicates the segmented region
+        mainCtx.fillStyle = color;  // Semi-transparent green overlay
+
+        // Draw pixel by pixel where mask value is 1
+        for (let y = 0; y < mask.length; y++) {
+            for (let x = 0; x < mask[y].length; x++) {
+                if (mask[y][x] === 1) {
+                    mainCtx.fillRect(x, y, 1, 0.5);  // Draw pixel at (x, y)
+                }
+            }
+        }
+    } else {
+        console.error('Invalid or missing segmentation mask.');
+    }
+}
+
+// Function to highlight report text with gradient colors based on similarity scores
+function highlightReportText(highlightedTextArray) {
+    let reportContainer = document.getElementById('originalReportContainer');
+    reportContainer.innerHTML = '';  // Clear existing content
+
+    highlightedTextArray.forEach(sentenceInfo => {
+        let span = document.createElement('span');
+        span.textContent = sentenceInfo.sentence + ' ';  // Add sentence
+
+        // Apply color gradient based on the similarity score
+        const score = sentenceInfo.score;
+        const color = sentenceInfo.color;
+        const minScore = 0.4; // Example minimum score
+        const maxScore = 2.8; // Example maximum score
+        const normalizedScore = (score - minScore) / (maxScore - minScore);
+        const lightness = 100 - Math.floor(normalizedScore * 100);  // Adjust lightness based on score
+
+        // Use HSL for gradient effect based on similarity score
+        span.style.backgroundColor = `hsl(${getHueFromColor(color)}, 100%, ${lightness}%)`;
+
+        reportContainer.appendChild(span);
+    });
+}
+
+// Helper function to convert hex color to HSL hue value
+function getHueFromColor(hexColor) {
+    const r = parseInt(hexColor.substring(1, 3), 16);
+    const g = parseInt(hexColor.substring(3, 5), 16);
+    const b = parseInt(hexColor.substring(5, 7), 16);
+
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h;
+    const d = max - min;
+    switch (max) {
+        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+        case g: h = (b - r) / d + 2; break;
+        case b: h = (r - g) / d + 4; break;
+    }
+    return Math.round(h * 60);  // Return hue in degrees
+}
+
+
+// Function to handle bounding box drawing
+function drawBoundingBox(box, color) {
+    if (Array.isArray(box) && box.length === 4) {
+        mainCtx.strokeStyle = color;
+        mainCtx.lineWidth = 2;
+        mainCtx.strokeRect(box[0], box[1], box[2] - box[0], box[3] - box[1]);
+    } else {
+        console.error('Invalid bounding box format:', box);
+    }
+}
+
+
+// Handle image switching via thumbnails
+function loadThumbnails() {
+    const thumbnailContainer = document.getElementById('thumbnailContainer');
+    thumbnailContainer.innerHTML = '';
+    imagePaths.forEach((imagePath, index) => {
+        let thumbnail = document.createElement('img');
+        thumbnail.src = imagePath;
+        thumbnail.classList.add('thumbnail');
+        thumbnail.dataset.index = index;
+        thumbnail.onclick = () => {
+            currentImageIndex = index;
+            loadImageAndData(currentImageIndex);
+            document.querySelectorAll('.thumbnail').forEach(thumb => thumb.classList.remove('active'));
+            thumbnail.classList.add('active');
+        };
+        thumbnailContainer.appendChild(thumbnail);
+    });
+}
+
+// Initialize the thumbnails and make the first one active
+loadThumbnails();
+document.querySelector(`.thumbnail[data-index="0"]`).classList.add('active');
+
+// Function to handle report enhancement and update the enhanced report section
+function enhanceReport() {
+	fetch('/enhance-report/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            report_text: "{{ report_text }}",
+            folder_name: '{{ folder_name }}'  // Pass the folder name to the backend
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.enhanced_text) {
+            // Replace the original report text with the enhanced text, formatted with bullet points and bold headings
+            enhancedText = formatEnhancedText(data.enhanced_text); // Store the enhanced text
+			console.log(enhancedText);
+            document.getElementById('enhancedReportContainer').innerHTML = enhancedText;
+            currentReportText = enhancedText; // Update the current report text to the enhanced version
+			document.getElementById('enhanceReportBtn').disabled = true;
+            console.log("Enhanced text received, applied, and saved.");
+
+
+        } else {
+            alert('Enhancement failed: ' + data.error);
+            document.getElementById('enhanceReportBtn').disabled = false; // Re-enable button if enhancement fails
+        }
+    })
+    .catch(error => {
+        console.error('Error enhancing text:', error);
+        alert('An error occurred during enhancement.');
+        document.getElementById('enhanceButton').disabled = false; // Re-enable button if an error occurs
+    });
+}
+
+function formatEnhancedText(text) {
+    return text
+        .replace(/(\*\*(.*?)\*\*)/g, '<p><strong style="font-size: 1.2em">$2</strong></p>') // make **text** bold and bigger
+        .replace(/(\*(.*?)\*)/g, '<li>$2</li>') // make *text* a list item
+        .replace(/(\<li\>.*?\<\/li\>)/gs, '<ul style="list-style-type: disc;">$&</ul>') // wrap list items in <ul> tag with disc style
+        .replace(/\*\n/g, '</li><li>') // handle newline characters after list items
+        .replace(/<\/li><li>/g, '</li>\n<li>') // add newline between list items
+        .replace(/^\*/g, '') // remove leading * characters
+        .replace(/\*$/g, '') // remove trailing * characters
+        .replace(/\*/g, ''); // remove all * characters
+}
+    // Function to handle gradient-based text highlighting based on similarity score
+function highlightReportText(highlighted_text) {
+    let reportContainer = document.getElementById('originalReportContainer');
+    reportContainer.innerHTML = '';  // Clear existing content
+
+    highlighted_text.forEach(sentenceInfo => {
+        let span = document.createElement('span');
+        span.textContent = sentenceInfo.sentence;
+
+        // Apply color gradient based on the similarity score (dark for high, light for low)
+        const score = sentenceInfo.score;
+        const color = sentenceInfo.color;
+        const lightness = 100 - Math.floor(score * 100);  // Adjust lightness based on score
+        span.style.backgroundColor = `hsl(${getHueFromColor(color)}, 100%, ${lightness}%)`;
+
+        reportContainer.appendChild(span);
+    });
+}
+
+// Helper function to convert hex color to HSL hue value for the gradient
+function getHueFromColor(hexColor) {
+    const r = parseInt(hexColor.substring(1, 3), 16);
+    const g = parseInt(hexColor.substring(3, 5), 16);
+    const b = parseInt(hexColor.substring(5, 7), 16);
+
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h;
+    const d = max - min;
+    switch (max) {
+        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+        case g: h = (b - r) / d + 2; break;
+        case b: h = (r - g) / d + 4; break;
+    }
+    return Math.round(h * 90);  // Return hue in degrees
+}
+
+
+// Event listener for the Enhance button
+document.getElementById('enhanceReportBtn').addEventListener('click', enhanceReport);
+
+// Add interactivity for drawing bounding boxes (single box at a time)
+let isDrawing = false;
+let startX, startY;
+
+mainCanvas.addEventListener('mousedown', (e) => {
+    isDrawing = true;
+    startX = e.offsetX;
+    startY = e.offsetY;
+});
+
+mainCanvas.addEventListener('mousemove', (e) => {
+    if (!isDrawing) return;
+    let currentX = e.offsetX;
+    let currentY = e.offsetY;
+
+    // Clear only the area where the bounding box will be drawn, without clearing the image
+    mainCtx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
+    mainCtx.drawImage(loadedImages[currentImageIndex], 0, 0, mainCanvas.width, mainCanvas.height);
+
+    // Redraw existing bounding box and segmentation plot for current image index
+    if (boundingBoxes[currentImageIndex]) {
+        drawBoundingBox(boundingBoxes[currentImageIndex].coords, boundingBoxes[currentImageIndex].color);
+    }
+    if (segmentationPlots[currentImageIndex]) {
+        drawSegmentationPlot(segmentationPlots[currentImageIndex]);
+    }
+
+    // Draw new bounding box
+    let currentColor = boundingBoxColors[currentImageIndex % boundingBoxColors.length]; // Unique color per image
+    mainCtx.strokeStyle = currentColor;
+    mainCtx.lineWidth = 2;
+    mainCtx.strokeRect(startX, startY, currentX - startX, currentY - startY);
+});
+
+mainCanvas.addEventListener('mouseup', (e) => {
+    isDrawing = false;
+    let endX = e.offsetX;
+    let endY = e.offsetY;
+
+    // Save the new bounding box for the current image index, with the associated color
+    let currentColor = boundingBoxColors[currentImageIndex % boundingBoxColors.length];
+    boundingBoxes[currentImageIndex] = {
+        coords: [startX, startY, endX, endY],
+        color: currentColor
+    };
+
+    // Clear segmentation plot for the image index (as user has redrawn the bounding box)
+    segmentationPlots[currentImageIndex] = null;
+
+    // Redraw the bounding box on the canvas
+    drawBoundingBox(boundingBoxes[currentImageIndex].coords, boundingBoxes[currentImageIndex].color);
+
+    // Send the bounding box info to the backend (along with the color)
+    sendBoundingBoxToServer(boundingBoxes[currentImageIndex]);
+});
+
+function sendBoundingBoxToServer(boundingBox) {
+    const startX = boundingBox.coords[0];
+    const startY = boundingBox.coords[1];
+    const endX = boundingBox.coords[2];
+    const endY = boundingBox.coords[3];
+
+    // Log the variables for debugging
+    console.log('Bounding Box Array:', [startX, startY, endX, endY]);
+    console.log('Current Image Index:', currentImageIndex);
+    console.log('Image Path:', imagePaths[currentImageIndex]);
+    console.log('Colour: ', boundingBox.color);
+
+    // Send request to backend with the bounding box array
+    fetch(`/get-segmentation/{{ folder_name }}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}',  // CSRF token for Django security
+        },
+        body: JSON.stringify({
+            bbox: [startX, startY, endX, endY],  // Send bbox as an array of numbers
+            image_index: currentImageIndex,
+            color: boundingBox.color,  // Pass the color
+            image_path: imagePaths[currentImageIndex]  // Pass the image path
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => {
+                throw new Error(`Server responded with error: ${err.detail || err}`);
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Bounding box and segmentation response:', data);
+        // Handle the response data, such as segmentation results
+        segmentationPlots[currentImageIndex] = data;
+        if (currentImageIndex === data.index) {
+            drawSegmentationPlot(segmentationPlots[currentImageIndex],boundingBox.color);
+            highlightReportText(data.clip_results.highlighted_text);
+        }
+    })
+    .catch(error => {
+        console.error('Error sending bounding box:', error.message);
+    });
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,382 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Medical Dashboard Layout</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <style>
+    @import url("https://css.gg/css");
+    body, html {
+      height: 100%;
+      background-color: #B1C2DE; /* Light blue background */
+      margin: 0;
+      overflow: hidden;
+    }
+    .sidebar {
+      background: linear-gradient(180deg, #a8edea 0%, #fed6e3 100%); /* Gradient pastel color */
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 20px;
+    }
+    .sidebar img {
+      border-radius: 50%;
+      margin-bottom: 10px;
+    }
+    .sidebar p {
+      margin: 5px 0;
+    }
+    .sidebar .nav-item {
+      margin: 20px 0;
+    }
+    .sidebar .nav-link {
+      color: #333; /* Text color */
+      font-weight: bold; /* Make the text bold */
+      padding: 10px 15px; /* Adjust padding for better spacing */
+      border-radius: 50px; /* Rounded corners for buttons */
+      background-color: transparent; /* No background by default */
+      text-align: center;
+    }
+    .sidebar .nav-link:hover {
+      background-color: #ccc; /* Background color on hover */
+      color: #000; /* Text color on hover */
+      text-decoration: none; /* Remove underline on hover */
+    }
+    .content {
+      background-color: #ffffff; /* White content area */
+      height: 100%;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+    }
+    .full-height {
+      height: 100%;
+      padding: 35px;
+      box-sizing: border-box;
+    }
+    .rounded-edges {
+      border-radius: 30px;
+      overflow: hidden;
+      height: 100%;
+    }
+    .rounded1 {
+      width: 30%;
+      border-radius: 50%;
+    }
+    .sear {
+      border-radius: 90px;
+      color: rgb(113, 111, 111);
+    }
+    .main {
+      overflow: hidden;
+      height: 100%;
+    }
+    .custom-row {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+    .navbar-row {
+      flex: 0 0 8%; /* 8% height */
+    }
+    .content-row d-flex align-items-stretch {
+      flex: 1; /* Remaining height */
+      display: flex;
+      overflow: hidden;
+    }
+    .col-6 {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .text {
+      background-color: #DBE3E5;
+    }
+    .image_upload {
+      background-color: #DBE3E5;
+    }
+    .image_upload .card-img-top {
+      width: 100%;
+      height: 400px; /* Height before uploading */
+      object-fit: contain; /* Ensure the image is fully visible */
+      border-radius: 0; /* Ensures the image corners match the card's corners */
+      margin-bottom: 10px; /* Adds some space between the image and the thumbnails */
+      transition: height 0.3s ease; /* Smooth transition for height change */
+    }
+    .image_upload.uploaded .card-img-top {
+      height: 480px; /* Increased height for the uploaded image */
+    }
+    .image_upload .card-body {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start; /* Align content at the top */
+      height: 100%;
+      padding: 10px; /* Adjusted padding to allow for buttons */
+    }
+    .image_upload .input-group {
+      display: flex;
+      gap: 10px; /* Adds space between the file input and the upload button */
+      margin-bottom: 10px; /* Adds space between elements */
+    }
+    .image_upload .input-group .form-control {
+      flex: 1; /* Ensures the input field takes up available space */
+    }
+    .image_upload textarea {
+      flex-grow: 1; /* Ensures the textarea grows to fill available space */
+      resize: none; /* Prevents resizing */
+      height: 150px; /* Set a max height if needed */
+      max-width: 100%; /* Ensures it does not overflow horizontally */
+    }
+    .card {
+      width: 100%;
+      flex: 1; /* Ensure both cards stretch equally */
+    }
+    .img-fluid {
+      width: 50%;
+    }
+    
+    .full-height-card {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100%; /* Ensures full height */
+    }
+    .thumbnails {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: auto; /* Pushes thumbnails to the bottom */
+      max-height: 60px; /* Set a max height to ensure visibility */
+      overflow-y: auto; /* Allow scrolling if thumbnails exceed the height */
+    }
+    .thumbnails img {
+      width: 30px; /* Smaller size for thumbnails */
+      height: 30px; /* Smaller size for thumbnails */
+      object-fit: cover;
+      margin: 5px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: transform 0.2s ease-in-out;
+    }
+    .thumbnails img:hover {
+      transform: scale(1.1);
+    }
+    
+    /* ... existing styles ... */
+    .list-group {
+      max-height: 590px; /* Adjust as needed */
+      overflow-y: auto; /* Enable vertical scrolling */
+      margin-top: 20px;
+      border: none;
+      background-color: transparent;
+    }
+    .list-group-item {
+      background-color: #f8f9fa; /* Light background for list items */
+      border: none;
+      color: #333;
+      font-weight: bold;
+      padding: 15px;
+      margin-bottom: 10px;
+      border-radius: 10px;
+      transition: background-color 0.3s, color 0.3s;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Add subtle shadow */
+    }
+    .list-group-item:hover {
+      background-color: #e2e6ea; /* Slightly darker on hover */
+      color: #000;
+      text-decoration: none;
+    }
+    .list-group-item-action {
+      cursor: pointer;
+    }
+    /* Custom scrollbar styling */
+    .list-group::-webkit-scrollbar {
+      width: 8px;
+    }
+    .list-group::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 10px;
+    }
+    .list-group::-webkit-scrollbar-thumb {
+      background: #888;
+      border-radius: 10px;
+    }
+    .list-group::-webkit-scrollbar-thumb:hover {
+      background: #555;
+    }
+
+  </style>
+</head>
+<body>
+
+  <div class="container-fluid full-height">
+    <div class="row rounded-edges">
+      <!-- Sidebar -->
+      <div class="col-1 sidebar text-center">
+        <img src="{% static 'doc.jpg' %}" alt="doc" class="rounded1">
+        <p><b>Dr. {{ user.username }}</b></p>
+        <ul class="nav flex-column my-4">
+          <li class="nav-item">
+            <a href="#" class="nav-link">Home</a>
+          </li>
+          <li class="nav-item">
+            <a href="#" class="nav-link">Profile</a>
+          </li>
+          <li class="nav-item">
+            <a href="#" class="nav-link">Expert analysis</a>
+          </li>
+          <li class="nav-item">
+            <a href="{% url 'history' %}" class="nav-link">Previous reports</a>
+          </li>
+          <li class="nav-item">
+            <a href="{% url 'logout' %}" class="nav-link">Logout</a>
+          </li>
+        </ul>
+      </div>
+      <!-- Main Content Area -->
+      <div class="col-11 content">
+        <div class="navbar-row">
+          <nav class="navbar navbar-expand-lg navbar-light">
+            <a class="navbar-brand" href="#">RadXpert</a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+              <ul class="navbar-nav mr-auto">
+                <li class="nav-item active">
+                  <a class="nav-link" href="#">Home <span class="sr-only">(current)</span></a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="#">Link</a>
+                </li>
+                <li class="nav-item dropdown">
+                  <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    Dropdown
+                  </a>
+                  <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                    <a class="dropdown-item" href="#">Action</a>
+                    <a class="dropdown-item" href="#">Another action</a>
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item" href="#">Something else here</a>
+                  </div>
+                </li>
+              </ul>
+              <form class="form-inline my-2 my-lg-0" method="get" action="{% url 'dash' %}">
+                <input class="form-control mr-sm-2 sear" type="search" placeholder="Search" aria-label="Search" name="q" value="{{ search_query }}">
+              </form>
+            </div>
+          </nav>
+        </div>
+        <div class="content-row d-flex align-items-stretch">
+          <!-- Left-hand side content (now on the left) -->
+          <div class="col-6 d-flex align-items-center justify-content-center">
+            <div class="card image_upload flex-fill" id="uploadCard">
+              <img class="card-img-top" id="uploadedImage" src="{% static 'webLung.jpg' %}" alt="Card image cap">
+              <div class="card-body">
+                <div class="instructions">
+                  <p><strong>Step 1:</strong> Choose the patients X-ray images</p>
+                  <p><strong>Step 2:</strong> Click on upload button.</p>
+                </div>
+                <div class="input-group">
+                  <input type="file" id="jsonFile" class="form-control" aria-label="Upload JSON file" accept="image/*" multiple>
+                  <a href="#" onclick="showImagesAndReplaceCard()" class="btn btn-light">Upload</a>
+                </div>
+                <!-- Thumbnails will be displayed here -->
+                <div id="thumbnails" class="thumbnails"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right-hand side content -->
+          <div class="col-6 d-flex align-items-center justify-content-center">
+            <div class="card text-center text flex-fill">
+              <div class="card-body d-flex flex-column">
+                <h5 class="card-title txt_show">List of Reports</h5>
+                <div class="list-group flex-grow-1 overflow-auto">
+                  {% if report_ids %}
+                    {% for report_id in report_ids %}
+                      <a href="{% url 'segmentation_page' report_id %}" class="list-group-item list-group-item-action">
+                        {{ report_id }}
+                      </a>
+                    {% endfor %}
+                  {% else %}
+                    <p>No reports found.</p>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let images = [];
+    let currentIndex = 0;
+
+    function showImagesAndReplaceCard() {
+      var fileInput = document.getElementById('jsonFile');
+      var files = fileInput.files;
+      images = [];
+
+      var uploadCard = document.getElementById('uploadCard');
+      var thumbnailsDiv = document.getElementById('thumbnails');
+      thumbnailsDiv.innerHTML = '';  // Clear the thumbnails
+
+      // Hide the instructions, buttons, and file input
+      var instructions = document.querySelector('.instructions');
+      var fileInputGroup = document.querySelector('.input-group'); // Select the file input container
+      instructions.style.display = 'none';
+      fileInputGroup.style.display = 'none';
+
+      // Increase the image size after upload
+      uploadCard.classList.add('uploaded');
+
+      for (let i = 0; i < files.length; i++) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          images.push(e.target.result);
+
+          // Create a thumbnail for each image
+          var thumbImg = document.createElement('img');
+          thumbImg.src = e.target.result;
+          thumbImg.onclick = function() {
+            displayImage(images.indexOf(e.target.result));
+          };
+          thumbnailsDiv.appendChild(thumbImg);
+
+          console.log('Thumbnail created for image:', e.target.result); // Debugging log
+
+          if (i === 0) { // Display the first image initially
+            displayImage(0);
+          }
+        };
+        reader.readAsDataURL(files[i]);
+      }
+
+      var resultDiv = document.getElementById("result");
+      resultDiv.innerHTML = "<strong>Impression:</strong> no acute cardiopulmonary process.<br /><strong>Findings:</strong> the lungs are clear of airspace or interstitial opacity. the cardiomediastinal silhouette is unremarkable. no pleural effusions or pneumothorax. no acute or aggressive osseous changes.";
+    }
+
+    function displayImage(index) {
+      var uploadedImage = document.getElementById('uploadedImage');
+      uploadedImage.src = images[index];
+
+      console.log('Main image displayed:', images[index]); // Debugging log
+    }
+  </script>
+  
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+</body>
+</html>
