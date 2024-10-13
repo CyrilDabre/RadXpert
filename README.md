@@ -32,48 +32,49 @@ Setup Instructions
 -------------------
 Step 1: Clone Repository
 
-git clone https://github.com/CyrilDabre/RadXpert.git
-cd RadXpert
+  git clone https://github.com/CyrilDabre/RadXpert.git
+  
+  cd RadXpert
 
 Step 2: Install Dependencies
 
-pip install -r requirements.txt
+  pip install -r requirements.txt
 
 Step 3: Configure Django Settings
 
-settings.py Configuration
-
-Ensure DATABASES setting is correct (e.g., SQLite).
+  settings.py Configuration
+  
+  Ensure DATABASES setting is correct (e.g., SQLite).
 
 Set up static and media file handling:
 
 
-STATIC_URL = '/static/' 
+  STATIC_URL = '/static/' 
+  
+  STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')] 
+  
+  MEDIA_URL = '/media/' 
+  
+  MEDIA_ROOT = os.path.join(BASE_DIR, 'media') 
 
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')] 
-
-MEDIA_URL = '/media/' 
-
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media') 
-
-Apply Migrations
-
-python manage.py makemigrations
-
-python manage.py migrate
+  Apply Migrations
+  
+  python manage.py makemigrations
+  
+  python manage.py migrate
 
 Step 4: Create Superuser
 
-python manage.py createsuperuser
+  python manage.py createsuperuser
 
-Follow prompts to create username, email, and password.
+  Follow prompts to create username, email, and password.
 
 Step 5: Run Server
 
 
-python manage.py runserver
+  python manage.py runserver
 
-Open browser and navigate to http://127.0.0.1:8000/
+  Open browser and navigate to http://127.0.0.1:8000/
 
 Troubleshooting
 ---------------
