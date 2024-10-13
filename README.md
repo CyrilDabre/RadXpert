@@ -1,4 +1,12 @@
-RadXpert Project Setup
+RadXpert Project
+================
+Table of Contents
+-----------------
+Project Overview
+----------------
+RadXpert is a [briefly describe the project].
+Setup Instructions
+-------------------
 Step 1: Clone Repository
 Bash
 git clone https://github.com/CyrilDabre/RadXpert.git
@@ -6,7 +14,6 @@ cd RadXpert
 Step 2: Install Dependencies
 Bash
 pip install -r requirements.txt
-This installs necessary packages for Django, image processing, machine learning models, and other tools.
 Step 3: Configure Django Settings
 settings.py Configuration
 Ensure DATABASES setting is correct (e.g., SQLite).
@@ -28,3 +35,7 @@ Step 5: Run Server
 Bash
 python manage.py runserver
 Open browser and navigate to .
+Troubleshooting
+---------------
+Check GitHub credentials for permission issues.
+Verify Django settings and migrations.
