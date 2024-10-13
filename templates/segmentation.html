@@ -1,0 +1,645 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Image Segmentation and Report Enhancement</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        @import url("https://css.gg/css");
+        body, html {
+          height: 100%;
+          background-color: #B1C2DE; /* Light blue background */
+          margin: 0;
+          overflow: hidden;
+        }
+        .sidebar {
+          background: linear-gradient(180deg, #a8edea 0%, #fed6e3 100%); /* Gradient pastel color */
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding-top: 20px;
+        }
+        .sidebar img {
+          border-radius: 50%;
+          margin-bottom: 10px;
+        }
+        .sidebar p {
+          margin: 5px 0;
+        }
+        .sidebar .nav-item {
+          margin: 20px 0;
+        }
+        .sidebar .nav-link {
+          color: #333; /* Text color */
+          font-weight: bold; /* Make the text bold */
+          padding: 10px 15px; /* Adjust padding for better spacing */
+          border-radius: 50px; /* Rounded corners for buttons */
+          background-color: transparent; /* No background by default */
+          text-align: center;
+        }
+        .sidebar .nav-link:hover {
+          background-color: #ccc; /* Background color on hover */
+          color: #000; /* Text color on hover */
+          text-decoration: none; /* Remove underline on hover */
+        }
+        .content {
+          background-color: #ffffff; /* White content area */
+          height: 100%;
+          padding: 20px;
+          display: flex;
+          flex-direction: column;
+        }
+        .full-height {
+          height: 100%;
+          padding: 35px;
+          box-sizing: border-box;
+        }
+        .rounded-edges {
+          border-radius: 30px;
+          overflow: hidden;
+          height: 100%;
+        }
+        .rounded1 {
+          width: 30%;
+          border-radius: 50%;
+        }
+        .sear {
+          border-radius: 90px;
+          color: rgb(113, 111, 111);
+        }
+        .main {
+          overflow: hidden;
+          height: 100%;
+        }
+        .custom-row {
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+        }
+        .navbar-row {
+          flex: 0 0 8%; /* 8% height */
+        }
+        .content-row {
+          flex: 1; /* Remaining height */
+          display: flex;
+          overflow: hidden;
+        }
+        .col-6 {
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+        .text {
+          background-color: #DBE3E5;
+        }
+        .card {
+          width: 100%;
+          flex: 1; /* Ensure both cards stretch equally */
+        }
+        .img-fluid {
+          width: 50%;
+        }
+        .full-height-card {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          height: 100%; /* Ensures full height */
+        }
+        /* Additional styles for segmentation page */
+        .canvas-container {
+            position: relative;
+            display: inline-block;
+        }
+        canvas {
+            border: 1px solid black;
+            max-width: 100%;
+            height: auto;
+        }
+        #thumbnailContainer {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .thumbnail {
+            width: 100px;
+            height: 100px;
+            border: 1px solid black;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.3s;
+        }
+        .thumbnail.active {
+            opacity: 1;
+            border: 2px solid blue;
+        }
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+        #originalReportContainer, #enhancedReportContainer {
+            max-height: 400px;  /* Adjust as necessary */
+            overflow-y: auto;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }
+
+        #reportContainer {
+            background-color: #DBE3E5;
+            padding: 20px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        /* Adjust the heights to make the content scrollable if necessary */
+        .content-row {
+            flex: 1;
+            overflow: auto;
+        }
+        /* Custom scrollbar styling */
+        .list-group::-webkit-scrollbar, .content-row::-webkit-scrollbar {
+          width: 8px;
+        }
+        .list-group::-webkit-scrollbar-track, .content-row::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 10px;
+        }
+        .list-group::-webkit-scrollbar-thumb, .content-row::-webkit-scrollbar-thumb {
+          background: #888;
+          border-radius: 10px;
+        }
+        .list-group::-webkit-scrollbar-thumb:hover, .content-row::-webkit-scrollbar-thumb:hover {
+          background: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid full-height">
+        <div class="row rounded-edges">
+            <!-- Sidebar -->
+            <div class="col-1 sidebar text-center">
+                <img src="{% static 'doc.jpg' %}" alt="doc" class="rounded1">
+                <p><b>Dr. {{ user.username }}</b></p>
+                <ul class="nav flex-column my-4">
+                    <li class="nav-item">
+                        <a href="{% url 'dash' %}" class="nav-link">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link">Profile</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link">Expert analysis</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'history' %}" class="nav-link">Previous reports</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'logout' %}" class="nav-link">Logout</a>
+                    </li>
+                </ul>
+            </div>
+            <!-- Main Content Area -->
+            <div class="col-11 content">
+                <div class="navbar-row">
+                    <nav class="navbar navbar-expand-lg navbar-light">
+                        <a class="navbar-brand" href="#">RadXpert</a>
+                        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" 
+                                aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                            <span class="navbar-toggler-icon"></span>
+                        </button>
+        
+                        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                            <!-- Navbar links can be added here if needed -->
+                            <form class="form-inline my-2 my-lg-0" method="get" action="#">
+                                <input class="form-control mr-sm-2 sear" type="search" placeholder="Search" aria-label="Search">
+                            </form>
+                        </div>
+                    </nav>
+                </div>
+                <div class="content-row d-flex align-items-stretch">
+                    <!-- Left-hand side content -->
+                    <div class="col-8 d-flex align-items-center justify-content-center">
+                        <div class="card flex-fill">
+                            <div class="card-body"  style="overflow-y: auto; ">
+                                <h3 style="text-align: center;">Report Id: {{ folder_name }} </h3>
+                                <div class="canvas-container"  style="overflow-y: auto; "> 
+                                    <canvas id="mainCanvas" width="1024" height="1024"></canvas>
+                                </div>
+                                <!-- Thumbnails to switch between images -->
+                                <div id="thumbnailContainer">
+                                    {% for image in images %}
+                                        <img src="{{ image }}" class="thumbnail" data-index="{{ forloop.counter0 }}" />
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Right-hand side content -->
+                    <div class="col-4 d-flex align-items-center justify-content-center">
+                        <div class="card text-center text flex-fill">
+                            <div class="card-body d-flex flex-column">
+                                <h5 class="card-title txt_show">Report Details</h5>
+                                <div id="reportContainer">
+                                    <h6>Original Report</h6>
+                                    <div id="originalReportContainer">Loading original report...</div>
+                                    <h6>Enhanced Report</h6>
+                                    <div id="enhancedReportContainer" contenteditable="false"  style="text-align: left">Click 'Enhance Report' to generate enhanced text</div>
+                                    <!-- Button to trigger report enhancement -->
+                                    <button id="enhanceReportBtn" class="btn btn-primary">Enhance Report</button>
+                                    <button id="editReportBtn" class="btn btn-warning" style="display: none;">Edit</button>
+                                    <button id="saveReportBtn" class="btn btn-success" style="display: none;">Save </button>
+                                    <button id="publishReportBtn" class="btn btn-success" style="display: none;">Publish </button>
+                                    
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+      </div>
+      
+    <!-- Include necessary scripts -->
+    <script>
+        let mainCanvas = document.getElementById('mainCanvas');
+let mainCtx = mainCanvas.getContext('2d');
+const imagePaths = {{ images|safe }};        
+let currentImageIndex = 0;  // Index of the currently displayed image
+let boundingBoxes = {};  // Store bounding boxes and other info per image index
+let segmentationPlots = {};  // Store segmentation results per image index
+let reportText = "{{ report_text }}"; // Replace with actual report text
+let enhancedText = '';
+
+// Colors for bounding boxes - unique per image index
+const boundingBoxColors = [ '#3357FF', '#FF33A1','#FF5733', '#33FF57', '#FFC300'];
+
+// Display the original report text by default
+document.getElementById('originalReportContainer').innerHTML = reportText;
+
+// Store each image's pre-loaded image object so it's only loaded once
+let loadedImages = {};
+
+// Load initial image and redraw bounding box/segmentation for the first image
+loadImageAndData(currentImageIndex);
+
+// Function to load image and relevant stored data without clearing the canvas during draw
+function loadImageAndData(imageIndex) {
+    if (loadedImages[imageIndex]) {
+        mainCtx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
+        mainCtx.drawImage(loadedImages[imageIndex], 0, 0, mainCanvas.width, mainCanvas.height);
+
+        // Draw the bounding box and segmentation plot if available
+        if (boundingBoxes[imageIndex]) {
+            drawBoundingBox(boundingBoxes[imageIndex].coords, boundingBoxes[imageIndex].color);
+        }
+        if (segmentationPlots[imageIndex]) {
+            drawSegmentationPlot(segmentationPlots[imageIndex], boundingBoxes[imageIndex].color);
+        }
+    } else {
+        let img = new Image();
+        img.onload = function () {
+            mainCtx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
+            mainCtx.drawImage(img, 0, 0, mainCanvas.width, mainCanvas.height);
+
+            // Cache the loaded image
+            loadedImages[imageIndex] = img;
+
+            // Draw the bounding box and segmentation plot if available
+            if (boundingBoxes[imageIndex]) {
+                drawBoundingBox(boundingBoxes[imageIndex].coords, boundingBoxes[imageIndex].color);
+            }
+            if (segmentationPlots[imageIndex]) {
+                drawSegmentationPlot(segmentationPlots[imageIndex], boundingBoxes[imageIndex].color);
+            }
+        };
+        img.src = imagePaths[imageIndex];
+    }
+}
+
+// Function to draw segmentation plot (mask)
+function drawSegmentationPlot(segmentationData, color) {
+    if (segmentationData.mask && Array.isArray(segmentationData.mask)) {
+        const mask = segmentationData.mask;
+        mainCtx.fillStyle = color;
+
+        // Draw pixel by pixel where mask value is 1
+        for (let y = 0; y < mask.length; y++) {
+            for (let x = 0; x < mask[y].length; x++) {
+                if (mask[y][x] === 1) {
+                    mainCtx.fillRect(x, y, 1, 0.5);
+                }
+            }
+        }
+    } else {
+        console.error('Invalid or missing segmentation mask.');
+    }
+}
+
+// Function to draw bounding box
+function drawBoundingBox(box, color) {
+    if (Array.isArray(box) && box.length === 4) {
+        mainCtx.strokeStyle = color;
+        mainCtx.lineWidth = 2;
+        mainCtx.strokeRect(box[0], box[1], box[2] - box[0], box[3] - box[1]);
+    } else {
+        console.error('Invalid bounding box format:', box);
+    }
+}
+
+// Handle image switching via thumbnails
+function loadThumbnails() {
+    const thumbnailContainer = document.getElementById('thumbnailContainer');
+    thumbnailContainer.innerHTML = '';
+    imagePaths.forEach((imagePath, index) => {
+        let thumbnail = document.createElement('img');
+        thumbnail.src = imagePath;
+        thumbnail.classList.add('thumbnail');
+        thumbnail.dataset.index = index;
+        thumbnail.onclick = () => {
+            currentImageIndex = index;
+            loadImageAndData(currentImageIndex);
+            document.querySelectorAll('.thumbnail').forEach(thumb => thumb.classList.remove('active'));
+            thumbnail.classList.add('active');
+        };
+        thumbnailContainer.appendChild(thumbnail);
+    });
+}
+
+// Initialize the thumbnails and make the first one active
+loadThumbnails();
+document.querySelector(`.thumbnail[data-index="0"]`).classList.add('active');
+
+// Function to handle report enhancement and update the enhanced report section
+function enhanceReport() {
+    // Disable the Enhance Report button to prevent multiple clicks
+    document.getElementById('enhanceReportBtn').disabled = true;
+    // Event listener for the Enhance button
+    document.getElementById('enhanceReportBtn').addEventListener('click', enhanceReport);
+    const enhanceButton = document.getElementById('enhanceReportBtn');
+    const editButton = document.getElementById('editReportBtn');
+    const saveButton = document.getElementById('saveReportBtn');
+    const publishButton = document.getElementById('publishReportBtn');
+
+    // Make the Edit and Save buttons visible
+    editButton.style.display = 'inline-block';
+    saveButton.style.display = 'inline-block';
+    publishButton.style.display = 'inline-block';
+    fetch('/enhance-report/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            report_text: "{{ report_text }}",
+            folder_name: '{{ folder_name }}'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.enhanced_text) {
+            enhancedText = formatEnhancedText(data.enhanced_text);
+            document.getElementById('enhancedReportContainer').innerHTML = enhancedText;
+            currentReportText = enhancedText;
+
+            // Hide the Enhance Report button
+            document.getElementById('enhanceReportBtn').style.display = 'none';
+            console.log("Enhanced text received, applied, and saved.");
+        } else {
+            alert('Enhancement failed: ' + data.error);
+            document.getElementById('enhanceReportBtn').disabled = false;
+        }
+    })
+    .catch(error => {
+        console.error('Error enhancing text:', error);
+        alert('An error occurred during enhancement.');
+        document.getElementById('enhanceReportBtn').disabled = false;
+    });
+}
+
+function formatEnhancedText(text) {
+    return text
+        .replace(/(\*\*(.*?)\*\*)/g, '<p><strong style="font-size: 1.2em">$2</strong></p>')
+        .replace(/(\*(.*?)\*)/g, '<li>$2</li>')
+        .replace(/(\<li\>.*?\<\/li\>)/gs, '<ul style="list-style-type: disc;">$&</ul>')
+        .replace(/\*\n/g, '</li><li>')
+        .replace(/<\/li><li>/g, '</li>\n<li>')
+        .replace(/^\*/g, '')
+        .replace(/\*$/g, '')
+        .replace(/\*/g, '');
+}
+
+// Event listener for the Enhance button
+document.getElementById('enhanceReportBtn').addEventListener('click', enhanceReport);
+    
+// Event listener for the Edit button
+document.getElementById('editReportBtn').addEventListener('click', () => {
+    const enhancedReportContainer = document.getElementById('enhancedReportContainer');
+    enhancedReportContainer.contentEditable = true;
+    
+    enhancedReportContainer.focus();
+});
+
+// Event listener for the Save button
+document.getElementById('saveReportBtn').addEventListener('click', () => {
+    const enhancedReportContent = document.getElementById('enhancedReportContainer').innerHTML;
+    // Disable the Save button to prevent multiple clicks
+    document.getElementById('saveReportBtn').disabled = true;
+
+    fetch('/save-enhanced-report/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            report_text: enhancedReportContent,
+            folder_name: '{{ folder_name }}'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Report saved successfully!!!.');
+            document.getElementById('saveReportBtn').disabled = false;
+        } else {
+            alert('Failed to save report: ' + data.error);
+            document.getElementById('saveReportBtn').disabled = false;
+        }
+    })
+    .catch(error => {
+        console.error('Error saving report:', error);
+        alert('An error occurred while saving the report.');
+        document.getElementById('saveReportBtn').disabled = false;
+    });
+});
+
+// Event listener for the Publish button
+document.getElementById('publishReportBtn').addEventListener('click', () => {
+    const enhancedReportContent = document.getElementById('enhancedReportContainer').innerHTML;
+
+    fetch('/publish-report/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            folder_name: '{{ folder_name }}',
+            enhanced_report: enhancedReportContent
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Report published successfully.');
+            // Optionally, redirect the user or update the UI
+        } else {
+            alert('Failed to publish report: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error publishing report:', error);
+        alert('An error occurred while publishing the report.');
+    });
+});
+
+// Function to send bounding box data to the server
+function sendBoundingBoxToServer(boundingBox) {
+    const startX = boundingBox.coords[0];
+    const startY = boundingBox.coords[1];
+    const endX = boundingBox.coords[2];
+    const endY = boundingBox.coords[3];
+
+    // Get the current image path
+    const image_path = imagePaths[currentImageIndex];
+
+    // Get the color
+    const color = boundingBox.color;
+
+    // Get the original report text
+    const originalReportText = "{{ report_text }}";
+
+    // Get the enhanced report text, if available
+    const enhancedReportContainer = document.getElementById('enhancedReportContainer');
+    let enhancedReportText = '';
+    if (enhancedReportContainer && enhancedReportContainer.innerHTML !== 'Click \'Enhance Report\' to generate enhanced text') {
+        enhancedReportText = enhancedReportContainer.innerHTML.trim();
+    }
+
+    // Send request to backend with the bounding box array and both reports
+    fetch(`/get-segmentation/{{ folder_name }}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}',  // CSRF token for Django security
+        },
+        body: JSON.stringify({
+            bbox: [startX, startY, endX, endY],
+            image_index: currentImageIndex,
+            color: color,
+            image_path: image_path,
+            original_report: originalReportText,
+            enhanced_report: enhancedReportText
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => {
+                throw new Error(`Server responded with error: ${err.detail || err}`);
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Bounding box and segmentation response:', data);
+        // Handle the response data, such as segmentation results
+        segmentationPlots[currentImageIndex] = data;
+        if (currentImageIndex === data.index) {
+            drawSegmentationPlot(segmentationPlots[currentImageIndex], boundingBox.color);
+            document.getElementById('originalReportContainer').innerHTML = data.original_clip_results.report_html;
+            document.getElementById('enhancedReportContainer').innerHTML = data.enhanced_clip_results.report_html;
+
+        }
+    })
+    .catch(error => {
+        console.error('Error sending bounding box:', error.message);
+    });
+}
+
+
+
+
+// Add interactivity for drawing bounding boxes
+let isDrawing = false;
+let startX, startY;
+
+mainCanvas.addEventListener('mousedown', (e) => {
+    isDrawing = true;
+    startX = e.offsetX;
+    startY = e.offsetY;
+});
+
+mainCanvas.addEventListener('mousemove', (e) => {
+    if (!isDrawing) return;
+    let currentX = e.offsetX;
+    let currentY = e.offsetY;
+
+    // Clear the canvas and redraw image and existing annotations
+    mainCtx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
+    mainCtx.drawImage(loadedImages[currentImageIndex], 0, 0, mainCanvas.width, mainCanvas.height);
+
+    // Redraw existing bounding box and segmentation plot for current image index
+    if (boundingBoxes[currentImageIndex]) {
+        drawBoundingBox(boundingBoxes[currentImageIndex].coords, boundingBoxes[currentImageIndex].color);
+    }
+    if (segmentationPlots[currentImageIndex]) {
+        drawSegmentationPlot(segmentationPlots[currentImageIndex], boundingBoxes[currentImageIndex].color);
+    }
+
+    // Draw new bounding box
+    let currentColor = boundingBoxColors[currentImageIndex % boundingBoxColors.length];
+    mainCtx.strokeStyle = currentColor;
+    mainCtx.lineWidth = 2;
+    mainCtx.strokeRect(startX, startY, currentX - startX, currentY - startY);
+});
+
+mainCanvas.addEventListener('mouseup', (e) => {
+    isDrawing = false;
+    let endX = e.offsetX;
+    let endY = e.offsetY;
+
+    // Save the new bounding box for the current image index, with the associated color
+    let currentColor = boundingBoxColors[currentImageIndex % boundingBoxColors.length];
+    boundingBoxes[currentImageIndex] = {
+        coords: [startX, startY, endX, endY],
+        color: currentColor
+    };
+
+    // Clear segmentation plot for the image index (as user has redrawn the bounding box)
+    segmentationPlots[currentImageIndex] = null;
+
+    // Redraw the bounding box on the canvas
+    drawBoundingBox(boundingBoxes[currentImageIndex].coords, boundingBoxes[currentImageIndex].color);
+
+    // Send the bounding box info to the backend (along with the color)
+    sendBoundingBoxToServer(boundingBoxes[currentImageIndex]);
+});
+</script>
+
+<!-- Include Bootstrap JS and dependencies -->
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+</body>
+</html>
