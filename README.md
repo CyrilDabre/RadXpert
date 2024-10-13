@@ -42,14 +42,16 @@ pip install -r requirements.txt
 Step 3: Configure Django Settings
 
 settings.py Configuration
+
 Ensure DATABASES setting is correct (e.g., SQLite).
+
 Set up static and media file handling:
 
 
-STATIC_URL = '/static/'
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+STATIC_URL = '/static/' 
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')] 
+MEDIA_URL = '/media/' 
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media') 
 Apply Migrations
 
 python manage.py makemigrations
